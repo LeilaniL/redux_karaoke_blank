@@ -23,9 +23,9 @@ const initialState = {
       arrayPosition: 0,
     }
   }
-}
+};
 
-//REDUX REDUCER
+// REDUX REDUCERS
 const lyricChangeReducer = (state = initialState.songsById, action) => {
   let newArrayPosition;
   let newSongsByIdEntry;
@@ -52,6 +52,7 @@ const lyricChangeReducer = (state = initialState.songsById, action) => {
       return state;
   }
 }
+
 const songChangeReducer = (state = initialState.currentSongId, action) => {
   switch (action.type) {
     case 'CHANGE_SONG':
@@ -60,14 +61,61 @@ const songChangeReducer = (state = initialState.currentSongId, action) => {
       return state;
   }
 }
-
-
+const rootReducer = this.Redux.combineReducers({
+  currentSongId: songChangeReducer,
+  songsById: lyricChangeReducer
+})
 // REDUX STORE
 const { createStore } = Redux;
-const store = createStore(lyricChangeReducer);
-console.log(store.getState());
+const store = createStore(rootReducer);
 
-// //RENDERING STATE IN DOM
+// JEST TESTS + SETUP
+const { expect } = window;
+
+expect(lyricChangeReducer(initialState.songsById, { type: null })).toEqual(initialState.songsById);
+
+expect(lyricChangeReducer(initialState.songsById, { type: 'NEXT_LYRIC', currentSongId: 2 })).toEqual({
+  1: {
+    title: "Bye Bye Bye",
+    artist: "N'Sync",
+    songId: 1,
+    songArray: songList[1],
+    arrayPosition: 0,
+  },
+  2: {
+    title: "What's Goin' On",
+    artist: "Four Non-Blondes",
+    songId: 2,
+    songArray: songList[2],
+    arrayPosition: 1,
+  }
+});
+
+expect(lyricChangeReducer(initialState.songsById, { type: 'RESTART_SONG', currentSongId: 1 })).toEqual({
+  1: {
+    title: "Bye Bye Bye",
+    artist: "N'Sync",
+    songId: 1,
+    songArray: songList[1],
+    arrayPosition: 0,
+  },
+  2: {
+    title: "What's Goin' On",
+    artist: "Four Non-Blondes",
+    songId: 2,
+    songArray: songList[2],
+    arrayPosition: 0,
+  }
+});
+
+expect(songChangeReducer(initialState, { type: null })).toEqual(initialState);
+
+expect(songChangeReducer(initialState, { type: 'CHANGE_SONG', newSelectedSongId: 1 })).toEqual(1);
+
+expect(rootReducer(initialState, { type: null })).toEqual(initialState);
+
+
+// RENDERING STATE IN DOM
 const renderLyrics = () => {
   const lyricsDisplay = document.getElementById('lyrics');
   while (lyricsDisplay.firstChild) {
@@ -105,53 +153,35 @@ window.onload = function () {
   renderSongs();
   renderLyrics();
 }
-//JEST TESTS AND SETUP
-expect(lyricChangeReducer(initialState.songsById, { type: null })).toEqual(initialState.songsById);
-
-expect(lyricChangeReducer(initialState.songsById, { type: 'NEXT_LYRIC', currentSongId: 2 })).toEqual({
-  1: {
-    title: "Bye Bye Bye",
-    artist: "N'Sync",
-    songId: 1,
-    songArray: songList[1],
-    arrayPosition: 0,
-  },
-  2: {
-    title: "What's Goin' On",
-    artist: "Four Non-Blondes",
-    songId: 2,
-    songArray: songList[2],
-    arrayPosition: 1,
-  }
-});
-expect(lyricChangeReducer(initialState.songsById, { type: 'RESTART_SONG', currentSongId: 1 })).toEqual({
-  1: {
-    title: "Bye Bye Bye",
-    artist: "N'Sync",
-    songId: 1,
-    songArray: songList[1],
-    arrayPosition: 0,
-  },
-  2: {
-    title: "What's Goin' On",
-    artist: "Four Non-Blondes",
-    songId: 2,
-    songArray: songList[2],
-    arrayPosition: 0,
-  }
-});
-expect(songChangeReducer(initialState, { type: null })).toEqual(initialState);
-
-expect(songChangeReducer(initialState.currentSongId, { type: 'CHANGE_SONG', newSelectedSongId: 1 })).toEqual(1);
 
 // CLICK LISTENER
 const userClick = () => {
-  const currentState = store.getState();
-  if (currentState.arrayPosition === currentState.songLyricsArray.length - 1) {
-    store.dispatch({ type: 'RESTART_SONG' });
+  if (store.getState().songsById[store.getState().currentSongId].arrayPosition === store.getState().songsById[store.getState().currentSongId].songArray.length - 1) {
+    store.dispatch({
+      type: 'RESTART_SONG',
+      currentSongId: store.getState().currentSongId
+    });
   } else {
-    store.dispatch({ type: 'NEXT_LYRIC' });
+    store.dispatch({
+      type: 'NEXT_LYRIC',
+      currentSongId: store.getState().currentSongId
+    });
   }
+}
+const selectSong = (newSongId) => {
+  let action;
+  if (store.getState().currentSongId) {
+    action = {
+      type: 'RESTART_SONG',
+      currentSongId: store.getState().currentSongId
+    }
+    store.dispatch(action);
+  }
+  action = {
+    type: 'CHANGE_SONG',
+    newSelectedSongId: newSongId
+  }
+  store.dispatch(action);
 }
 
 // SUBSCRIBE TO REDUX STORE
